@@ -1,0 +1,88 @@
+to init-parameters
+  set duree 25000
+
+  ; definit les formes par defaut des agents
+  set-default-shape Perceptions "circle"
+  set-default-shape Bases "house"
+  set-default-shape Explorers "explorer"
+  set-default-shape RocketLaunchers "rocket launcher"
+  set-default-shape Harvesters "harvester"
+  set-default-shape Burgers "hamburger"
+  set-default-shape Walls "box"
+
+  ; initialise les variables qui definissent les parametres du jeu
+
+  ; parametres des bases
+  set base-nrj 50000
+  set base-perception 10
+  set base-speed 0
+  set base-nb-missiles 1000
+  set base-max-missiles 1000000
+  set base-nb-fafs 20
+  set base-max-fafs 100
+  set base-waiting 1
+  set base-burgers 100
+
+  ; parametres des rocket-launchers
+  set rocket-launcher-cost 6000
+  set rocket-launcher-nrj 4000
+  set rocket-launcher-perception 5
+  set rocket-launcher-speed 0.5
+  set rocket-launcher-metabolism 0.1
+  set rocket-launcher-nb-missiles 100
+  set rocket-launcher-max-missiles 1000
+  set rocket-launcher-nb-fafs 2
+  set rocket-launcher-max-fafs 5
+  set rocket-launcher-waiting 5
+  set rocket-launcher-burgers 10
+
+  ; parametres des explorers
+  set explorer-cost 1500
+  set explorer-nrj 1000
+  set explorer-perception 10
+  set explorer-speed 1
+  set explorer-metabolism 0.1
+  set explorer-burgers 10
+
+  ; parametres des harvesters
+  set harvester-cost 3000
+  set harvester-nrj 2000
+  set harvester-perception 3
+  set harvester-speed 0.25
+  set harvester-metabolism 0.1
+  set harvester-burgers 10
+
+  ; parametres des missiles
+  set missile-cost 10
+  set missile-range 10
+  set missile-robot-damage 100
+  set missile-base-damage 20
+  set missile-speed 1
+
+  ; parametres des faf
+  set faf-cost 50
+  set faf-range 20
+  set faf-robot-damage 200
+  set faf-base-damage 40
+  set faf-speed 1
+
+  ; parametre des collisions
+  set collision-damage 1000
+
+  ; parametres des burgers
+  set burger-quantity 100
+  set burger-periodicity 2000
+  set wild-burger-min-nrj 50
+  set wild-burger-max-nrj 100
+  set seeded-burger-min-nrj 100
+  set seeded-burger-max-nrj 150
+  set burger-decay 0.1
+
+  ; parametres des graines
+  set seed-cost 20
+  set max-seeds 5
+  set maturation-time 1000
+  
+  set wall-cost 100
+  set wall-nrj 1000
+end

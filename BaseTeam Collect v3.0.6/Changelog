@@ -1,0 +1,88 @@
+v3.0.4
+* ajout d'une méthode perceive-fafs pour détecter les fafs dans le
+  rayon de perception de l'agent
+
+v3.0.3
+* correction d'un bug dans la procédure new-wall (coût d'un
+  explorer pour créer un mur)
+* possibilité pour les harvesters de transporter 5 murs à la fois
+  (avec une gestion de type pile = LIFO)
+* restriction au niveau des possibilités de création de la base (1
+  robot ou mur par tour)
+* évolution du code de l'équipe verte
+  - prise en compte des nouvelles modalités de création de robots
+  - limitation du "friendly fire"
+
+v3.0.2
+* correction d'un bug lié au pourrissement (les burgers pouvaient
+  avoir une énergie négative) - les burgers disparaissent quand leur
+  énergie devient nulle
+* correction d'un bug quand on prend un mur (leur énergie était
+  réinitialisée à 1000 en reposant le mur) - mémorisation de
+  l'énergie d'un mur quand on le prend - restitution de l'énergie au
+  mur quand on le dépose
+* seules les bases peuvent donner de l'énergie
+* seuls les harvesters peuvent prendre des murs
+* procédure take renommée en take-food
+* évolution du code de l'équipe verte
+
+v3.0.1
+* augmentation de la mémoire des bases
+  - 6 emplacements mémoire supplémentaires (avec possibilité de gestion de
+    listes)
+* pourrissement progressif des burgers (burger-decay)
+* création des murs symétriques pour toutes les équipes
+* création de nouveaux murs par la base (new-wall)
+* identification des robots morts
+* augmentation des coûts de fabrication et des dégâts pour les missiles de
+  base
+* modification des règles de collision
+  - un robot est détruit en cas de collision avec une base
+* initialisation des valeurs des paramètres dans "parameters.nls"
+
+v2.1
+* Modification de la procédure new-random-burgers
+  - correction de bug quand les 2 bases rouges sont détruites
+* Modification de launch-faf
+  - correction de bug quand la cible t n’existe plus
+* Modification de go-faf
+  - correction de bug quand la cible target n’existe plus
+* Modification des conditions de victoire dans le go
+  - Ne déclenche la victoire d’une équipe que quand les bases des 2 autres
+    équipes sont détruites
+* Correction du code de l’équipe verte pour éviter des bugs quand les 2 bases
+  ont été détruites :
+  - green-team-go-back-to-base : vérification que b existe
+  - goGreenHarvester : vérification que b existe
+* Correction du code de l’équipe rouge pour éviter des bugs quand les 2 bases
+  ont été détruites :
+  - red-team-go-back-to-base : vérification que b existe
+* Correction du code de l’équipe bleue pour éviter des bugs quand les 2 bases
+  ont été détruites :
+  - blue-team-go-back-to-base : vérification que b existe
+
+v2.0
+* Modification de la map
+  - 121 x 51
+  - topologie toroïdale
+* Ajout d'une troisième équipe
+  - 2 bases par équipe
+  - réparties de manière régulière sur le tore
+* Modification de free-ahead?
+  - on regarde au minimum à une distance de 1 pour savoir s'il y a un
+    obstacle devant
+  - on regarde dans un cône de 135° au lieu de 90°
+* modification de forward-move et random-move
+* possibilité de collision
+* un robot qui meurt libère 10 burgers, une base qui meurt libère 100 burgers
+* Diminution du métabolisme (quantité d'énergie perdue chaque tour
+  pour rester en vie)
+  - 0.05 au lieu de 0.1
+* Modification de la quantité d'énergie initiale des bases
+  - 50.000 au lieu de 42.000
+* Modification de l'interface
+  - ajout de la possibilité de visualiser la mémoire des robots
+* Modification de la procédure give-food pour donner de la nourriture aux
+  Explorers
+* Ajout d'un missile de type "faf" (fire and forget)
+* Modification du code de l'équipe verte
