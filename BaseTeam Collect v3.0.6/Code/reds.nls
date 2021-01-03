@@ -10,32 +10,45 @@ to SoupeGourmande-team-ask-for-energy [ b n ]
 end
 
 to SoupeGourmande-team-go-back-to-base
-    let b min-one-of my-bases [ distance myself ]
-    if (b != nobody and distance b > 5) [
-      ifelse (distance b <= 2)
-      [ 
-        if (carrying-food? > 1000) [ give-food b carrying-food? ]
-        if (energy < 500) [ SoupeGourmande-team-ask-for-energy b 500 ]
-        if ((Breed = RocketLaunchers) and (nb-missiles = 0)) [
-          SoupeGourmande-team-ask-for-energy b 500
-          new-missile 5
-        ]
+  let b min-one-of my-bases [ distance myself ]
+  if (b != nobody and distance b > 1) [
+    ifelse (distance b <= 2)
+    [ 
+      
+      if (carrying-food? > 500) [ give-food b carrying-food? - 250 ]
+      if (energy < 500) [ SoupeGourmande-team-ask-for-energy b 500 ]
+      if (Breed = Harvesters) [ set mem4 0 ]
+      
+      if ((Breed = RocketLaunchers) and (nb-missiles = 0)) [
+        SoupeGourmande-team-ask-for-energy b 500
+        new-missile 5
       ]
-      [
-        set heading towards b - 20 + random 40
-        if count turtles in-cone 2 90 with [ (breed != Burgers) and (breed != Perceptions) ] != 1 [ rt random 90 ]
-        forward-move speed
-      ]
-    ]    
+    ]
+    [
+      face b
+      ifelse (free-ahead? speed = nobody)  [ forward-move speed ][ rt random 360 if (free-ahead? speed = nobody) [ forward-move speed ]]
+    ]
+  ]    
 end
 
 to SoupeGourmande-team-go-and-eat
   if ((breed = RocketLaunchers and (mem5 = 0)) or (breed = Explorers)) [
-    ifelse (free-ahead? 1 != NOBODY) [
+    ifelse (free-ahead? speed != NOBODY) [
+      while [free-ahead? speed != NOBODY] [
+        rt random 90 
+      ]
+      random-move
     ]
     [
     random-move
     ]
+  ]
+end
+
+to SoupeGourmande-team-go-around-harvester
+  if (free-ahead? speed = NOBODY and carrying-food? > 0) [
+    lt 2
+    ifelse (free-ahead? speed = nobody)  [ forward-move speed ][ rt random 360 if (free-ahead? speed = nobody) [ forward-move speed ]]
   ]
 end
 
@@ -46,7 +59,7 @@ to SoupeGourmande-team-harvesters-go-and-eat
       [ take-food b ]
       [ set heading towards b - 20 + random 40
         if count turtles in-cone 2 90 with [ (breed != Burgers) and (breed != Perceptions) ] != 1 [ rt random 90 ]
-        forward-move speed
+        ifelse (free-ahead? speed = nobody)  [ forward-move speed ][ rt random 360 if (free-ahead? speed = nobody) [ forward-move speed ]]
       ]
   ]
   [ random-move ]
@@ -91,6 +104,10 @@ to SoupeGourmande-team-select-target
   ]
 end
 
+to SoupeGourmande-team-rocketLauncher-init
+  let b min-one-of my-bases [ distance myself ]
+end
+
 to SoupeGourmande-team-shoot 
   if (not SoupeGourmande-team-no-target?) 
   [
@@ -98,7 +115,7 @@ to SoupeGourmande-team-shoot
     [ launch-rocket towardsxy mem0 mem1 set mem5 0]
     [ set heading towardsxy mem0 mem1 - 20 + random 40
       if count turtles in-cone 2 90 with [ (breed != Burgers) and (breed != Perceptions) ] != 1 [ rt random 90 ]
-      forward-move speed
+      ifelse (free-ahead? speed = nobody)  [ forward-move speed ][ rt random 360 if (free-ahead? speed = nobody) [ forward-move speed ]]
     ]
   ]
   
@@ -109,7 +126,14 @@ to SoupeGourmande-team-set-food-target [ x y ]
 end
 
 to goRedExplorer
-  SoupeGourmande-team-go-back-to-base
+  let food one-of perceive-food
+  if (food != nobody) [
+    SoupeGourmande-team-call-harvester [xcor] of food [ycor] of food 
+  ]
+  
+  if (energy < 250 ) [
+    SoupeGourmande-team-go-back-to-base
+  ]
   SoupeGourmande-team-go-and-eat
 
   ifelse (not SoupeGourmande-team-no-target?) [
@@ -133,11 +157,24 @@ to SoupeGourmande-team-drive-harvesters
   ]
 end
 
+to SoupeGourmande-team-defend-base
+  let b min-one-of my-bases [ distance myself ]
+    if (b != nobody and distance b < 15) [
+    
+    face b rt 180
+    ifelse (free-ahead? speed = nobody)  [ forward-move speed ][ rt random 360 if (free-ahead? speed = nobody) [ forward-move speed ]]
+  ]
+end
+
 to goRedRocketLauncher
-  SoupeGourmande-team-go-back-to-base
+  let food one-of perceive-food
+  if (food != nobody) [
+    SoupeGourmande-team-call-harvester [xcor] of food [ycor] of food 
+  ]
+  
   SoupeGourmande-team-select-target
   SoupeGourmande-team-shoot
-  SoupeGourmande-team-go-and-eat
+  SoupeGourmande-team-defend-base
 
   if ((energy > 3000) and (nb-missiles < 5)) [ new-missile 1 ]
 end
@@ -146,38 +183,52 @@ to goRedHarvester
   let f min-one-of perceive-food [ distance myself ]
   while [(f != nobody) and (distance f <= 2)] [
     take-food f
-    set f min-one-of perceive-food [ distance myself ]
+    
+    set mem5 0 
+    set mem0 0 
+    set mem1 0
   ]
   
   let b min-one-of my-bases [ distance myself ]
   
-  if (mem4 = 1) and (energy > 100) and (distance b < 5) [set mem4 0]
-  
-  if(mem4 = 1) or (carrying-food? > 500) or (energy < 100) or (distance b > 20)
+  ifelse (mem5 = 0) and ((mem4 = 1) or (carrying-food? > 500) or (energy < 100) or (distance b > 20))
   [
     ; retour à la base
     set mem4 1
     ;; rentre à la base si certaines conditions sont vérifiées
+    if (distance b < 10) [ plant-seeds color max-seeds ]
     SoupeGourmande-team-go-back-to-base 
   ]
   
-  let w min-one-of perceive-walls [ distance myself ]
-  if (w != nobody) [ take-wall w ]
-  
-  if (energy > 100) and (carrying-food? > 100) [ 
-      ;; détermine la distance de la base la plus proche
-      if (b != nobody) [
-        ;; si le robot est à moins de 10 de la base
-        ifelse (distance b < 10)
-          [ 
-            plant-seeds color max-seeds
-             
+  [
+    ifelse (mem5 = 0) [
+      ifelse (mem3 > 0) [
+        face b rt 180
+        if(free-ahead? speed = NOBODY) [
+          ifelse (mem3 = 1) [
+            face b rt 90 forward-move speed
           ]
-          [ face b forward-move speed ]
+          [
+            face b rt 180 forward-move speed 
+          ]
+          set mem3 mem3 - 1
+        ]
+      ]
+      
+      [
+        if (distance b < 10)
+          [ plant-seeds color max-seeds ]
       ]
     ]
-    ;; cherche à manger
-    SoupeGourmande-team-harvesters-go-and-eat
+    
+    [
+      facexy mem0 mem1
+      ifelse (free-ahead? speed = nobody)  [ forward-move speed ][ rt random 360 if (free-ahead? speed = nobody) [ forward-move speed ]]
+    ]
+  ]
+  
+  let w min-one-of perceive-walls [ distance myself ]
+  if (w != nobody) [ take-wall w ]  
 end
 
 to goRedBase
@@ -187,12 +238,16 @@ to goRedBase
   ]
   
   set label energy
-  ifelse (mem6 > 5 ) [ new-Harvester self set mem6 mem6 - 1 ]
-  [ new-RocketLauncher self set mem6 mem6 - 1]
-  if(mem6 = 0 and energy > 15000) [ new-Harvester self ]
+  ifelse (mem5 mod 2 = 0) [
+    set mem5 mem5 - 1
+    ifelse (mem6 >= 12 ) [set mem6 mem6 - 1 new-Harvester self  ]
+    [ if mem6 >= 8 [new-RocketLauncher self set mem6 mem6 - 1]]
+    if(mem6 = 0 and energy > 15000) [ new-Harvester self ]
+  ][ set mem5 mem5 - 1 ]
   
   let t one-of perceive-specific-robots ennemy rocketlaunchers
-  if (t != nobody) [
+  if (t != nobody) [ face t ]
+  if (t != nobody and perceive-robots-in-cone friend 5 = nobody) [
     launch-rocket towards t
   ]
 end
@@ -207,10 +262,16 @@ end
 
 ;; procedure pour initialiser les rocket-launchers rouges
 to initRedHarvester
+  let b min-one-of my-bases [ distance myself ]
+    if (b != nobody) [
+    let number [mem6] of b
+    set mem3 (15 - number) * 9
+  ]
 end
 
 ;; procedure pour initialiser les bases rouges
 to initRedBase
   new-Explorer self
   set mem6 15
+  set mem5 30
 end
