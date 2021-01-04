@@ -1,265 +1,559 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
-;; le code de l'equipe verte basique
-;; préfixe : green-team
+;; le code de l'equipe rouge basique
+;; préfixe : red-team
 ;;
-;; mem0 et mem1 : coordonnees d'une cible
-;; mem5 : indique si le robot a ou non une cible sélectionnée
-;; mem4 : indique si un harvester est en mode retour à la base
-;; mem6 : le nb de harvesters à créer
-;; mem7 : le nb de rocket-launchers à créer
-;; mem8 : le nb d'explorers à créer
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-to green-team-ask-for-energy [ b n ]
-  ask b [ if (energy > 1000) [ give-energy myself n ]]
-end
-
-;;
-;; rentre à la base si le robot transporte plus de 1000 unités de nourriture ou si son énergie est inférieure à 500 ou si c'est un rocket-launcher qui n'a plus de missiles
-;;
-to green-team-go-back-to-base
-  ;; détermine la base la plus proche
-  let b min-one-of my-bases [ distance myself ]
-  if (b != nobody) [
-    if ((breed = Harvesters) and (distance b > 10) and (distance b < 11)) [drop-wall]
-    ;; si le robot est arrivé à la base
-    ifelse (distance b <= 2)
-      [ 
-        ;; dépose sa nourriture
-        give-food b carrying-food?
-        ;; demande de l'énergie si il reste moins de 1000
-        if (energy < 1000) [ green-team-ask-for-energy b 300 ]
-        ;; demande de l'énergie pour créer 5 missiles
-        if ((Breed = RocketLaunchers) and (nb-missiles = 0)) [
-          green-team-ask-for-energy b 500
-          new-missile 5
-        ]
-        set mem4 0
-        ;; fait demi-tour
-        rt 180
-      ]
-    ;; sinon
-      [
-        ;; s'oriente vers la base avec un peu d'aléatoire
-        set heading towards b - 20 + random 40
-        ;; fait un demi tour si il y a du monde devant
-        ifelse (free-ahead? speed = nobody)  [ forward-move speed ][ rt random 360 if (free-ahead? 2 = nobody) [ forward-move speed ]]
-      ]
-    ]    
-end
-
-to green-team-go-and-eat
-  if ((breed = RocketLaunchers and (mem5 = 0)) or (breed = Explorers)) [
-    random-move
-  ]
-end
-
-to green-team-harvesters-go-and-eat
-  let w min-one-of (perceive-walls) [distance myself]
-  let b min-one-of my-bases [ distance myself ]
-  if ((w != nobody) and ((distance b < 10) or (distance b > 11))) [take-wall w]
-  let f min-one-of perceive-food [ distance myself ]
-  ifelse (f != nobody) [ 
-    ifelse (distance f) <= 2
-      [ take-food f ]
-      [ set heading towards f - 20 + random 40
-      ifelse (free-ahead? speed = nobody) [ forward-move speed ][ rt random 360 if (free-ahead? 2 = nobody) [ forward-move speed ]]
-      ]
-  ]
+to dridriTeamForwardMove
+  let i 0
+  while [ free-ahead? speed != nobody and i < 6]
   [
-    ifelse (mem5 = 1)
-    [ 
-      ifelse (distancexy mem0 mem1 > 1)
-      [
-        set heading towardsxy mem0 mem1
-        ifelse (free-ahead? speed = nobody) [ forward-move speed ][ rt random 360 if (free-ahead? 2 = nobody) [ forward-move speed ]]
-      ]
-      [ set mem5 0 ]
-    ]
-    [ random-move ]
-  ]
-end
-
-;;
-;; la mémoire mem5 est à
-;; - 0 si le robot n'a pas de cible sélectionnée
-;; - 1 si le robot a une cible sélectionnée
-;;
-to-report green-team-no-target?
-  report mem5 = 0
-end
-
-to green-team-set-target-xy [ x y espece ]
-  set mem0 x set mem1 y set mem2 espece set mem5 1
-end
-
-to green-team-set-target-t [ t espece ]
-  set mem0 t set mem2 espece set mem5 2
-end
-
-to green-team-set-food-target [ x y ]
-  if (green-team-no-target?) [ set mem0 x set mem1 y set mem5 1 ] 
-end
-
-to green-team-call-rocket-launcher-xy [ x y espece ]
-  let rl min-one-of perceive-specific-robots color RocketLaunchers [ distancexy x y ]
-  if (rl != nobody) [ ask rl [ green-team-set-target-xy x y espece ]]
-end
-
-to green-team-call-rocket-launcher-t [ t espece ]
-  let rl min-one-of perceive-specific-robots color RocketLaunchers [ distance t ]
-  if (rl != nobody) [ ask rl [ green-team-set-target-t t espece ]]
-end
-
-to green-team-call-explorer [ x y espece ]
-  let ex one-of perceive-specific-robots color Explorers
-  if (ex != nobody) [
-    ask ex [ green-team-set-target-xy x y espece ]
-  ]
-end
-
-to green-team-call-harvester [ x y ]
-  let h min-one-of perceive-specific-robots color harvesters [ distancexy x y ]
-  if (h != nobody) [ ask h [ green-team-set-food-target x y ]]
-end
-
-;;
-;; essaye de sélectionner une cible à viser
-;;
-to green-team-select-target
-  ;; si le robot n'a pas une base adverse comme cible
-  if (green-team-no-target?)
-  [
-    ;; il essaye de percevoir un robot ennemi (le plus proche de lui)
-    let h min-one-of perceive-robots ennemy [ distance myself ]
-    ;; si il en a vu un, il mémorise ses coordonnées et vérouille la cible
-    ifelse ( h != nobody ) [
-      set mem0 h
-      set mem2 [breed] of h
-      set mem5 2
-    ]
-    ;; sinon, il se dévérouille
-    [ set mem5 0 ]
-  ]
-end
-
-to green-team-shoot 
-  if (not green-team-no-target?)
-  [
-    ifelse (mem5 = 1)
-    [ launch-rocket towardsxy mem0 mem1 set mem5 0 ]
-    [ launch-faf mem0 set mem5 0 ]
+    rt 60
+    set i i + 1
   ]
   
+  if free-ahead? speed = nobody [ forward-move speed ]
 end
 
-to green-team-drive-harvesters
-  let food one-of perceive-food
-  if (food != nobody) [
-    green-team-call-harvester [xcor] of food [ycor] of food 
+to-report dridriTeamMoveToTarget [ d ]
+  ifelse (mem5 != 0) and (distance mem5 > d)
+  [
+    set heading towards mem5
+    dridriTeamForwardMove
+    report false
+  ]
+  [
+    set mem5 0
+    report true
+  ]
+end
+
+to-report dridriTeamGetBreedCost [ b ]
+  if b = Harvesters [ report harvester-cost ]
+  if b = Explorers  [ report explorer-cost ]
+  if b = RocketLaunchers [ report rocket-launcher-cost ]
+end
+
+to dridriTeamRandomMove
+  set heading heading - 20 + random 40
+  dridriTeamForwardMove
+end
+
+;;;;;;;;;;;;;;;;;;;;;;
+;; --- EXPLORER --- ;;
+;;;;;;;;;;;;;;;;;;;;;;
+
+;On stocke le patch plutôt que la base car le patch sera accessibl tout le temps.
+;Si les soldats essaient de s'orienter vers la base alors qu'elle est morte, cela provoque un bug
+to dridriTeamExplorerSearchEnemyBases
+  dridriTeamRandomMove
+  let ennemyBase one-of perceive-base ennemy
+  
+  if ennemyBase != nobody
+  [
+    set mem0 (mem0 + 1)
+    set mem1 patch ([xcor] of ennemyBase) ([ycor] of ennemyBase)
+    set mem5 min-one-of my-bases [ distance myself ]
+  ]
+end
+
+;On récupère une base qui n'a pas de coodonnées pour les bases énnemies
+to dridriTeamExplorerRevealEnemyBase
+  ; Une fois que l'on est arrivé à distance de communication d'une base, on vérifie qu'elle ne contient pas déjà la position
+  ; de la base que l'on contient et on lui donne cette info
+  ; dans tous les cas on se dirige vers la base suivante pour lui passer la position de la base que l'on a trouvé
+  let b mem5
+  if dridriTeamMoveToTarget detection-range
+  [
+    let enemyBases [mem10] of b
+    
+    ifelse enemyBases = 0
+    [ set enemyBases (list mem1) ]
+    [ if (length enemyBases = 1) and (item 0 enemyBases != mem1) [ set enemyBases lput mem1 enemyBases ] ]
+    
+    ask b [ set mem10 enemyBases ]
+    set mem5 one-of my-bases with [ self != b ]
+    set mem3 (mem3 + 1)
+    if mem3 = 2
+    [
+      set mem0 0
+      set mem3 0
+    ]
   ]
 end
 
 to goGreenExplorer
-;  ifelse (carrying-food? > 1000) or (energy < 500) or ((Breed = RocketLaunchers) and (nb-missiles = 0))
-  ifelse (energy < 1000)
-  [ green-team-go-back-to-base ]
-  [ green-team-go-and-eat ]
-  
-  green-team-drive-harvesters
+  if mem0 = 0 [ dridriTeamExplorerSearchEnemyBases ]
+  if mem0 = 1 [ dridriTeamExplorerRevealEnemyBase ]
+end
 
-  ifelse (not green-team-no-target?) [
-    green-team-call-rocket-launcher-xy mem0 mem1 mem2
-    green-team-call-explorer mem0 mem1 mem2
+;;;;;;;;;;;;;;;;;;;;;
+;; --- SOLDIER --- ;;
+;;;;;;;;;;;;;;;;;;;;;
+
+to dridriTeamSoldierGoToMeetPoint
+  let meetPoint mem5
+  if dridriTeamMoveToTarget 1
+  [
+    set mem0 (mem0 + 1)
+    set mem5 meetPoint
   ]
-  [ let h one-of perceive-robots ennemy
-    if ( h != nobody ) [ green-team-call-rocket-launcher-t h [breed] of h]
+end
+
+to dridriTeamSoldierSwitchToAttack [ patchOfTargetBase ]
+  set mem0 2
+  set mem5 patchOfTargetBase
+end
+
+to-report dridriTeamSoldierChooseTarget
+  let patchTargets []
+    
+  if (mem1 != 0) and (mem1 != -1) [ set patchTargets (list mem1) ]
+  if (mem2 != 0) and (mem2 != -1) [ set patchTargets lput mem2 patchTargets ]
+  
+  report ifelse-value patchTargets = 0 [ nobody ] [ item (random length patchTargets) patchTargets ]
+end
+
+to dridriTeamSoldierWaitForAttack
+  ;On reste toujours dans un rayon de 2 autour du meetpoint en attendant d'aller attaquer
+  if distance mem5 > 2 [ set heading towards mem5 ]
+  dridriTeamRandomMove
+  
+  ;On envoie des groupes de commandos
+  let soldierAround perceive-specific-robots color RocketLaunchers
+  if count soldierAround >= 4
+  [
+    let choosenTarget dridriTeamSoldierChooseTarget
+    
+    if choosenTarget != nobody
+    [
+      dridriTeamSoldierSwitchToAttack choosenTarget
+      ask soldierAround with [ mem0 = 0 ]
+      [ dridriTeamSoldierSwitchToAttack choosenTarget ]
+    ]
+  ]
+end
+
+to dridriTeamSoldierMoveToTarget
+  let t mem5
+  if dridriTeamMoveToTarget (missile-range * 0.95)
+  [
+    set mem0 (mem0 + 1)
+    set mem5 t
+  ]
+end
+
+to-report dridriTeamSoldierLaunchRocket [ t ]
+  ;let saveHeading heading
+  ;set heading towards t
+  ;let friendsBehind perceive-specific-robots-in-cone color RocketLaunchers 5
+  ;print friendsBehind
+  ;if (count friendsBehind = 0)
+  ;[
+  
+  ;On tire quand même sur les robots autour, cela leur fera perdre de l'énergi, si elle tombe trop bas ils iront peut être réclamer de l'énergie à la
+  ;base ce qui permet de lui faire perdre aussi de l'énergie
+    ;On ne tirera pas ici si on a déjà lancé un faf mais on n'a que 2 faf donc ça ne devrait pas poser trop de problèmes
+    if nb-missiles = 0 [ new-missile 1 ]
+    launch-rocket towardsxy ([pxcor] of t) ([pycor] of t)
+    
+  ;]
+  ;set heading saveHeading
+  
+  report energy > 500
+end
+
+to dridriTeamSoldierAttack
+  ;On se balade dans un petit bandeau au 2/3 de la portée des missiles autour de la base
+  if distance mem5 >= missile-range ;>= pour être sûr d'être toujours strictement dans la zone de portée des missiles
+  [ set heading towards mem5 ]
+  
+  if distance mem5 <= (detection-range * .95)
+  [ rt 60 ]
+  
+  dridriTeamRandomMove
+
+  ;Si on ne peut plus lancer de missile au prochain tour on rentre à la base
+  if not dridriTeamSoldierLaunchRocket mem5
+  [
+    set mem5 min-one-of my-bases [ distance myself ]
+    set mem0 (mem0 + 1)
+  ]
+end
+
+to dridriTeamSoldierReturnBase
+  ;On retourne à la base, si on a trop peu d'énergie, on se suicide autour de la base
+  if dridriTeamMoveToTarget (detection-range * .95)
+  [
+    ;Quand on est arrivé aux alentour de la base, on se suicide, ou alors en recommence la procédure d'aller attaquer
+    ;une base énemie parmis celles encore vivantes
+    ifelse energy <= 500
+    [ set energy 0]
+    [ set mem0 0 ]
+
   ]
 end
 
 to goGreenRocketLauncher
-;  ifelse (carrying-food? > 1000) or (energy < 500) or ((Breed = RocketLaunchers) and (nb-missiles = 0))
-  ifelse (energy < 1000) or (nb-missiles = 0)
-  [
-    ;; rentre à la base si certaines conditions sont vérifiées
-    green-team-go-back-to-base
-  ]
-  [
-    ;; sinon sélectionne une cible
-    green-team-select-target
-    ifelse (green-team-no-target?)
-    ;; si pas de cible, cherche à manger
-    [ green-team-go-and-eat ]
-    ;; sinon tire
-    [ green-team-shoot ]
-  ]
+  ;On essaie toujours de lancer nos deux fafs sur les robots énemis l'on croise
+  let ennemyAround perceive-specific-robots ennemy RocketLaunchers
+  if count ennemyAround = 0 [ set ennemyAround perceive-specific-robots ennemy Harvesters ]
   
-  ;; crée un nouveau missile si plus de 3000 unités d'énergie
-  if ((energy > 3000) and (nb-missiles < 5)) [ new-missile 1 ]
+  if (count ennemyAround > 0) and (nb-fafs > 0)
+  [ launch-faf min-one-of ennemyAround [ distance myself ]]
+  if mem0 = 0 [ dridriTeamSoldierGoToMeetPoint ]
+  if mem0 = 1 [ dridriTeamSoldierWaitForAttack ]
+  if mem0 = 2 [ dridriTeamSoldierMoveToTarget  ]
+  if mem0 = 3
+  [
+    ;Dans le cas où on a tué la base, soit on change de cible, soit on retourne à la base apporter l'information que la base adverse est morte
+    if distance mem5 <= detection-range
+    [
+      let ennemyBase perceive-base ennemy
+      if count ennemyBase = 0
+      [
+        if mem5 = mem1 [ set mem1 -1 ]
+        if mem5 = mem2 [ set mem2 -1 ]
+        
+        let newTarget dridriTeamSoldierChooseTarget
+        
+        ifelse newTarget = nobody
+        [ set mem0 (mem0 + 1) ]
+        [ dridriTeamSoldierSwitchToAttack newTarget ]
+      ]
+    ]
+    dridriTeamSoldierAttack
+  ]
+  if mem0 = 4 [ dridriTeamSoldierReturnBase ]
 end
 
-to goGreenHarvester
+;;;;;;;;;;;;;;;;;;;;;;;
+;; --- HARVESTER --- ;;
+;;;;;;;;;;;;;;;;;;;;;;;
+to dridriTeamHarvesterRevealFoodPosition
+  ;On dit aux autre harvesters qui cherchent de la nourriture où se trouve la source que l'on a trouvée
+  if mem1 != nobody
+  [
+    let callerMem1 mem1
+    ask (perceive-specific-robots color Harvesters) with [ mem4 = 500 ]
+    [
+        if distance callerMem1 > 2
+        [ if mem1 = nobody [ set mem1 callerMem1 ] ]
+      ]
+  ]
+end
+
+to dridriTeamHarvesterSearchFood
+  ;Ramassage de la nouriture
   let f min-one-of perceive-food [ distance myself ]
+
   while [(f != nobody) and (distance f <= 2)] [
     take-food f
     set f min-one-of perceive-food [ distance myself ]
+    set mem1 nobody
   ]
-
-  ifelse (mem4 = 1) or (carrying-food? > 500) or (energy < 100)
+  
+  ;Avancer vers le reste de la nouriture, vers un spot de nouriture, ou au hasard
+  ifelse f != nobody
   [
-    ; retour à la base
-    set mem4 1
-    ;; rentre à la base si certaines conditions sont vérifiées
-    green-team-go-back-to-base
-    if (energy > 100) and (carrying-food? > 100) [ 
-      ;; détermine la distance de la base la plus proche
-      let b min-one-of my-bases [ distance myself ]
-      if (b != nobody) [
-        ;; si le robot est à moins de 10 de la base
-        if (distance b < 10)
-          [ plant-seeds color max-seeds ]
-      ]
+    set heading towards f
+    dridriTeamForwardMove
+  ]
+  [
+    ifelse mem1 = nobody
+    [ dridriTeamRandomMove ]
+    [ set mem5 mem1 if dridriTeamMoveToTarget 2 [ set mem1 nobody ] ]
+  ]
+  
+  ;Quand on atteind le seuil, on rentre à la base
+  if carrying-food? >= mem4
+  [
+    ;On sauvegarde où on a trouvé de la nourriture pour pouvoir continuer à donner cette information à d'autre harvester dans le chemin vers la base
+    set mem0 (mem0 + 1)
+    set mem1 patch-here
+    set mem5 mem3
+  ]
+  
+  ;Si on cherche de la nourriture autour de la base, on ne dépasse pas son rayon
+  if mem4 >= 2000
+  [
+    if distance mem3 >= missile-range
+    [ set heading towards mem3 ]
+  ]
+end
+
+to dridriTeamHarvesterComeToBase
+  if dridriTeamMoveToTarget (missile-range * .95)
+  [ set mem0 (mem0 + 1) ]
+end
+
+to dridriTeamHarvesterPlantSeeds
+  ;Si l'on veut planter des graines, la base nous attribut un patch dans mem5 donc nous allons vers celui-ci
+  if dridriTeamMoveToTarget 0 []
+  
+  ;Une fois qu'on a atteind le patch, on plante une graine et on se remet en attente d'un patch
+  if patch-here = mem5
+  [
+    plant-seeds color max-seeds
+    ;ask mem5 [ set pcolor black ]
+    set mem5 0
+    set mem2 mem2 + 1
+  ]
+  
+  ;Une fois que l'on a planté toutes les graînes que l'on doit planter, on va nourrir la base
+  if (mem2 >= 10) or (carrying-food? < max-seeds * seed-cost)
+  [
+    set mem0 (mem0 + 1)
+    set mem2 0
+    set mem5 mem3
+  ]
+end
+
+to dridriTeamHarvesterFeedBase
+  if dridriTeamMoveToTarget 2
+  [
+    give-food mem3 carrying-food?
+    set mem0 0
+    ifelse mem4 = 500
+    [
+      set mem1 nobody
+      set mem4 2000
+    ]
+    [ set mem4 min (list 6000 (mem4 + 1000)) ]
+  ]
+end
+
+;Se déplace aléatoirement. Quand ils trouvent de la nourriture en donne 80% à la base et plante ce qui reste
+to goGreenHarvester
+  let harvesterAround (perceive-specific-robots color Harvesters) with [ mem1 != nobody ] 
+  if count harvesterAround > 3
+  [ set mem1 nobody ]
+  dridriTeamHarvesterRevealFoodPosition
+  
+  let wallsAround perceive-walls
+  if count wallsAround > 0 [ take-wall min-one-of wallsAround [ distance myself ] ]
+  if mem0 = 0 [ dridriTeamHarvesterSearchFood ]
+  if mem0 = 1 [ dridriTeamHarvesterComeToBase ]
+  if mem0 = 2 [ dridriTeamHarvesterPlantSeeds ]
+  if mem0 = 3 [ dridriTeamHarvesterFeedBase ]
+end
+
+;;;;;;;;;;;;;;;;;;
+;; --- BASE --- ;;
+;;;;;;;;;;;;;;;;;;
+
+to dridriTeamBaseAssignPatchesToHarvestingHarvesters
+  let harvestingHarvesters (perceive-specific-robots color Harvesters) with [ (mem0 = 2) ]
+  let demandingHarvesters harvestingHarvesters with [ mem5 = 0 ]
+  
+  let possiblePatches (mem9 with-min [ count Seeds-here ]) with-min [ count harvestingHarvesters with [ mem5 = myself ] ]
+
+  let attributedPatches sort (min-n-of count demandingHarvesters possiblePatches [ distance myself ]);création d'une liste à partir d'un agent set
+  
+  let i 0
+  ask demandingHarvesters
+  [
+    let attributedPatch item i attributedPatches
+    ;ask attributedPatch [ set pcolor green ]
+    set mem5 attributedPatch
+    set i i + 1
+  ]
+end
+
+to dridriTeamBaseUpdateAvailableEnergy
+  let dEnergy energy - mem11
+  set mem8 max (list 0 (mem8 + 0.70 * dEnergy))
+end
+
+to dridriTeamBaseRequests [ n b ]
+  ifelse b = Harvesters
+  [ set mem0 max (list 0 (mem0 + n)) ]
+  [
+    ifelse b = Explorers
+    [ set mem1 max (list 0 (mem1 + n)) ]
+    [
+      if b = RocketLaunchers
+      [ set mem2 max (list 0 (mem2 + n)) ]
     ]
   ]
+  ;C'est quand même étrange que cette vession avec les if à la ligne ne fonctionne pas
+  ;if b = Harvesters [ set mem0 max (list 0 (mem0 + n)) ]
+  ;if b = Explorers [ set mem1 max (list 0 (mem1 + n)) ]
+  ;if b = RocketLaunchers [ set mem2 max (list 0 (mem2 + n)) ]
+  ;print (list mem0 mem1 mem2)
+end
+
+;Si le nombre d'harvesters est plus petit qu'une certaines valeur, recréer des harvesters
+to dridriTeamBaseConditionalyRequestHarvester
+  if (ticks >= 1000) and (ticks mod 200 = 0)
   [
-    ;; cherche à manger
-    green-team-harvesters-go-and-eat
+    let harvesterThreshold 8
+    let harvesterNumber count perceive-specific-robots color Harvesters
+    if (harvesterNumber < harvesterThreshold)
+    [ dridriTeamBaseRequests 1 Harvesters ]
+  ]
+end
+
+;Si on a perdu de l'énergie  alors on enlèvera des soldats de la file d'attente
+to dridriTeamBaseConditionalyRequestSoldier
+  if mem10 != 0
+  [
+      let soldierQuantity mem8 / dridriTeamGetBreedCost RocketLaunchers
+      let newSoldierAmount floor soldierQuantity
+      
+      if newSoldierAmount > 0
+      [
+        dridriTeamBaseRequests newSoldierAmount RocketLaunchers
+        set mem8 (mem8 - newSoldierAmount * dridriTeamGetBreedCost RocketLaunchers)
+      ]
+  ]
+end
+
+to dridriTeamBaseConditionalyRequestExplorer
+  if ((mem10 = 0) or (length mem10 != 2)) and (ticks mod 400 = 0)
+  [ dridriTeamBaseRequests 1 Explorers ]
+end
+
+to dridriTeamBaseConditionalyRequestBots
+  dridriTeamBaseConditionalyRequestHarvester
+  dridriTeamBaseConditionalyRequestSoldier
+  dridriTeamBaseConditionalyRequestExplorer
+end
+
+to dridriTeamBaseCreate [ b ]
+  if (b = Harvesters) and (mem0 > 0)
+  [
+    new-Harvester self
+    set mem0 (mem0 - 1)
+  ]
+
+  if (b = Explorers) and (mem1 > 0)
+  [
+    new-Explorer self
+    set mem1 (mem1 - 1)
+  ]
+  
+  if (b = RocketLaunchers) and (mem2 > 0)
+  [
+    new-RocketLauncher self
+    set mem2 (mem2 - 1)
+  ]
+end
+
+to dridriTeamBaseCreateBots
+  if create-ok? [ dridriTeamBaseCreate Harvesters ]
+  if create-ok? [ dridriTeamBaseCreate Explorers ]
+  if create-ok? [ dridriTeamBaseCreate RocketLaunchers ]
+end
+
+to dridriTeamBaseLaunchFAF [ t ]
+  if ticks mod 10 = 0
+  [
+    if nb-fafs = 0 [ new-faf 1 ]
+    launch-faf t
+  ]
+end
+
+to dridriTeamBaseConditionnalyLaunchFAF
+  ;Détection de tous les lanceurs de missiles ennemis à proximité
+  let ennemySoldierAround perceive-specific-robots ennemy RocketLaunchers
+  ;let ennemySoldierAround perceive-robots ennemy
+  let ennemyList sort-on [ distance myself ] ennemySoldierAround
+  
+  let i 0
+  while [ i < length ennemyList ]
+  [
+    let possibleTarget item i ennemyList
+    set heading towards possibleTarget
+    
+    ;On récupère le nombre de harvesters dans un cône entre la base et une cible possible
+    let harvestersInWay (Harvesters with [ color = [color] of myself ]) in-cone (distance possibleTarget) 30
+    
+    if count harvestersInWay = 0
+    [
+      dridriTeamBaseLaunchFAF possibleTarget
+      set i length ennemyList
+    ]
+    set i (i + 1)
+  ]
+end
+
+to dridriTeamBaseUpdateTargetInformation
+  let soldiersAround (perceive-specific-robots color RocketLaunchers) with [ mem0 = 4 ]
+  
+  if count soldiersAround > 0
+  [
+    let s one-of soldiersAround
+    let defeatedEnnemyBase 0
+    
+    if [mem1] of s = -1 [ set defeatedEnnemyBase mem1 ]
+    if [ mem2 ] of s = -1 [ set defeatedEnnemyBase mem2 ]
+    
+    let newTargetList 0
+    
+    if defeatedEnnemyBase = item 0 mem10 [ set mem10 remove-item 0 mem10 ]
+    if defeatedEnnemyBase = item 1 mem10 [ set mem10 remove-item 1 mem10 ]
+  ]
+end
+
+to dridriTeamBaseGiveEnergy
+  let lowEnergyHarvesters (perceive-specific-robots color Harvesters) with [ energy < 1000 ]
+  
+  if count lowEnergyHarvesters > 0
+  [
+    let theChoosenOne min-one-of lowEnergyHarvesters [ energy ]
+  
+    ;On garde toujours de l'énergie pour créer au moins 2 harvesters
+    if energy >= 2 * dridriTeamGetBreedCost Harvesters [ give-energy theChoosenOne 1000 ]
   ]
 end
 
 to goGreenBase
-  ;; crée un nouveau robot si il reste des demandes de création dans le pipe (mem6, mem7 ou mem8)
-  ifelse (mem6 > 0) [ new-Harvester self set mem6 mem6 - 1 ]
-  [ ifelse (mem7 > 0) [ new-RocketLauncher self set mem7 mem7 - 1 ]
-  [ if (mem8 > 0) [ new-Explorer self set mem8 mem8 - 1 ]]]
-  
-  if (nb-missiles < 10) and (energy > 1000) [ new-missile 50 ]
-  if (nb-fafs < 10) and (energy > 1000) [ new-faf 10 ]
-  if (energy > 12000) [ ifelse (random 2 = 0) [ set mem6 mem6 + 1 ][ifelse (random 2 = 0) [ set mem7 mem7 + 1 ][ set mem8 mem8 + 1 ]]]
+  ;Toutes les 500 ticks on remet ç jour le cache des patches utilisables
+  if ticks mod 500 = 0 [ set mem9 (patches in-radius detection-range) with [ (count Bases-here = 0) and (count Walls-here = 0)] ]
+  ;Ce n'est pas la peine de lancer ce code toutes les ticks
+  dridriTeamBaseAssignPatchesToHarvestingHarvesters
+  dridriTeamBaseUpdateAvailableEnergy
+  dridriTeamBaseConditionalyRequestBots
+  dridriTeamBaseCreateBots
 
-  let t one-of perceive-specific-robots ennemy rocketlaunchers
-  if (t != nobody) [
-    ;; regarde s'il y a des robots amis en direction de la cible potentielle t avant de tirer
-    if (not any? perceive-robots-in-cone color towards t) [ launch-faf t ]
-  ]
+  dridriTeamBaseConditionnalyLaunchFAF
+  dridriTeamBaseUpdateTargetInformation
+  dridriTeamBaseGiveEnergy
+  set mem11 energy
 end
 
-;; procedure pour initialiser les explorers verts
+;; procedure pour initialiser les explorers rouges
 to initGreenExplorer
 end
 
-;; procedure pour initialiser les rocket-launchers verts
+;; procedure pour initialiser les rocket-launchers rouges
 to initGreenRocketLauncher
+  let creator my-bases with-min [ distance myself ]
+  let ennemyBases 0
+  
+  ask creator [ set ennemyBases mem10 ]
+  
+  if ennemyBases != 0
+  [
+    set mem1 (item 0 ennemyBases)
+    if length ennemyBases = 2 [ set mem2 (item 1 ennemyBases) ]
+  ]
+  
+  let meetPointX (mean [ xcor ] of my-bases) - 10
+  let meetPointY mean [ ycor ] of my-bases
+  set mem5 (patch meetPointX meetPointY)
 end
 
-;; procedure pour initialiser les harvesters verts
+;; procedure pour initialiser les rocket-launchers rouges
 to initGreenHarvester
+  set mem1 nobody
+  set mem3 min-one-of my-bases [ distance myself ]
+  set mem4 500
 end
 
-;; procedure pour initialiser les bases verts
+;; procedure pour initialiser les bases rougesinifinie
 to initGreenBase
-  ; crée des explorers, des harvesters et des rocket-launchers
-  new-Harvester self
-  set mem6 7    ;; comme on ne peut créer qu'un seul robot par tour, mem6 sert à savoir combien de harvesters on doit encore créer
+  set mem11 energy
+  dridriTeamBaseRequests 15 Harvesters
 end
